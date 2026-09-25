@@ -8,6 +8,7 @@
         body { font-family: Arial, sans-serif; max-width: 500px; margin: 30px auto; padding: 20px; }
         input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
         ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -23,19 +24,21 @@
     <ul id="itemList"></ul>
 
     <script>
-        // Ganti URL ini dengan link Vercel kamu setelah dideploy
-        const API_URL = ""; // Contoh: "https://bagaiates.vercel.app/api/items" (kosongkan jika file html ini digabung/di-host di tempat lain, atau arahkan langsung ke domain vercelmu)
-
         async function fetchItems() {
             try {
                 const response = await fetch('/api/items');
                 const items = await response.json();
                 const list = document.getElementById('itemList');
                 list.innerHTML = '';
-                items.forEach(item => {
-                    list.innerHTML += `<li><b>${item.name}</b>: ${item.description} 
-                    <button onclick="deleteItem('${item._id}')" style="width:auto; padding:2px 5px;">Hapus</button></li>`;
-                });
+                
+                if (Array.isArray(items) && items.length > 0) {
+                    items.forEach(item => {
+                        list.innerHTML += `<li><b>${item.name}</b>: ${item.description} 
+                        <button onclick="deleteItem('${item._id}')" style="width:auto; padding:2px 5px; margin-left: 10px;">Hapus</button></li>`;
+                    });
+                } else {
+                    list.innerHTML = '<li>Belum ada data.</li>';
+                }
             } catch (err) {
                 console.error("Gagal memuat data", err);
             }
@@ -45,23 +48,44 @@
             const name = document.getElementById('name').value;
             const description = document.getElementById('description').value;
 
-            await fetch('/api/items', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description })
-            });
+            if (!name.trim()) {
+                alert("Nama item tidak boleh kosong!");
+                return;
+            }
 
-            document.getElementById('name').value = '';
-            document.getElementById('description').value = '';
-            fetchItems();
+            try {
+                const response = await fetch('/api/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+
+                if (response.ok) {
+                    document.getElementById('name').value = '';
+                    document.getElementById('description').value = '';
+                    fetchItems();
+                } else {
+                    alert("Gagal menyimpan ke server!");
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan jaringan: " + err.message);
+            }
         }
 
         async function deleteItem(id) {
-            await fetch(`/api/items/${id}`, { method: 'DELETE' });
-            fetchItems();
+            try {
+                const response = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    fetchItems();
+                } else {
+                    alert("Gagal menghapus data!");
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan jaringan: " + err.message);
+            }
         }
 
-        // Panggil saat halaman dibuka
+        // Panggil saat halaman pertama kali dibuka
         fetchItems();
     </script>
 </body>
